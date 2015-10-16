@@ -4,51 +4,56 @@
 #
 
 import psycopg2
-
+from contextlib import contextmanager
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
     return psycopg2.connect("dbname=tournament")
 
 
+@contextmanager
+def get_cursor():
+    """ Responsible for opening and closing database connection"""
+    conn = connect()
+    cursor = conn.cursor()
+    
+    try:
+        yield cursor
+    except:
+        raise
+    else:
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+
 def deleteMatches():
     """Remove all the match records from the database."""
     
-    conn = connect()
-    cur = conn.cursor()
-
     # Deletes all matches
-    cur.execute("DELETE FROM match_report;")
-    conn.commit()
-    
-    conn.close()
+    with get_cursor() as cur:
+        cur.execute("DELETE FROM match_report;")
 
 
 def deletePlayers():
     """Remove all the player records from the database."""
 
-    conn = connect()
-    cur = conn.cursor()
-
     # Deletes all players
-    cur.execute("DELETE FROM players;")
-    conn.commit()
-    
-    conn.close()
+    with get_cursor() as cur:
+        cur.execute("DELETE FROM players;")
+
 
 def countPlayers():
     """Returns the number of players currently registered."""
     
-    conn = connect()
-    cur = conn.cursor()
-
     # Gets players count
-    cur.execute("select count(id) from players")
+    with get_cursor() as cur:
+        cur.execute("select count(id) from players")
+
+        # Fetches result from cursur
+        count = cur.fetchall()[0]    
     
-    # Fetches result from cursur
-    count = cur.fetchall()[0]
-    
-    conn.close()
     return count[0]
 
 
@@ -61,14 +66,10 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
-    conn = connect()
-    cur = conn.cursor()
     
     # Inserts new player in database
-    cur.execute("INSERT INTO players(name) VALUES (%s);", [name])
-    conn.commit()
-    
-    conn.close()
+    with get_cursor() as cursor:
+        cursor.execute("INSERT INTO players(name) VALUES (%s);", [name])
 
 
 def playerStandings():
@@ -84,28 +85,20 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-    
-    conn = connect()
-    cur = conn.cursor()
 
-    # Gets match report
-    cur.execute("select * from get_summary;")
-    
-    conn.commit()
-    
     # Initializes empty list
     result = []
     
-    # Loops through result and puts values in list
-    for row in cur.fetchall():
+    # Gets match report
+    with get_cursor() as cur:
+        cur.execute("select * from get_summary;")
+
+        # Loops through result and puts values in list
         result += [(int(row[0]), 
                     str(row[1]), 
                     int(row[2]), 
-                    int(row[3])
-                   )
-                  ]
-
-    conn.close()
+                    int(row[3])) 
+                    for row in cur.fetchall()]
     return result
 
 
@@ -116,20 +109,16 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
-    conn = connect()
-    cur = conn.cursor()
     
     # Used round and tournament so provided 
     # hardcoded values, will update in next version
     record = (1, winner, loser, winner, 1)
     
     # Puts data into match_report table
-    cur.execute("INSERT INTO match_report "+
-                "(tournament_id, player1_id, player2_id, winner, match_round)"+
-                " VALUES ('%s','%s','%s','%s','%s');", record)
-    conn.commit()
-    
-    conn.close()
+    with get_cursor() as cursor:
+        cursor.execute("INSERT INTO match_report "+
+                    "(tournament_id, player1_id, player2_id, winner, match_round)"+
+                    " VALUES ('%s','%s','%s','%s','%s');", record)
  
  
 def swissPairings():

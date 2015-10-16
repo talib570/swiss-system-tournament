@@ -32,22 +32,21 @@ CREATE DATABASE tournament;
 -- and their bio data
 -- also adds unique key constraint on name
 CREATE TABLE players(
-	id SERIAL PRIMARY KEY NOT NULL,
-	name TEXT NOT NULL,
-	UNIQUE (name)	
+	id SERIAL PRIMARY KEY,
+	name TEXT NOT NULL
 );
 
 -- this table can store data about tournaments
 -- like title, event year, country etc
 CREATE TABLE tournaments(
-	id SERIAL PRIMARY KEY NOT NULL,
+	id SERIAL PRIMARY KEY,
 	title TEXT NOT NULL
 );
 
 -- this will keep record of players associated 
 -- with a particular tournament
 CREATE TABLE tournament_players(
-	id SERIAL PRIMARY KEY NOT NULL,
+	id SERIAL PRIMARY KEY,
 	tournament_id integer NOT NULL,
 	player_id integer NOT NULL,
 	CONSTRAINT fk_Tournament FOREIGN KEY (tournament_id)
